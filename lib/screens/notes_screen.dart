@@ -27,16 +27,17 @@ class NotesScreen extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             const Text(
               'Want to add a note?',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 35,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
             ),
-            const SizedBox(height: 24),
+            //const SizedBox(height: ),
             TextField(
               controller: _controller,
               maxLines: 6,
@@ -49,28 +50,38 @@ class NotesScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.indigo[900],
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              onPressed: () {
-                final note = _controller.text;
-                // Save note logic here
-                Navigator.pop(context);
-              },
-              child: const Text('Save Note', style: TextStyle(color: Colors.white)),
+
+            Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: Column(
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.indigo[900],
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 10),
+                      ),
+                      onPressed: () {
+                        final note = _controller.text;
+                        // Save note logic here
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Save Note',
+                          style: TextStyle(color: Colors.white, fontSize: 20)),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Skip',
+                          style: TextStyle(color: Colors.white, fontSize: 20)),
+                    )
+                  ],
+                )
             ),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Skip', style: TextStyle(color: Colors.white)),
-            ),
-            const Spacer(),
+
             const Text(
               'Every emotion is valid.\nYou showed up today - and that matters.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              style: TextStyle(color: Colors.white70, fontSize: 25),
             ),
           ],
         ),
