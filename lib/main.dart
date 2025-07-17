@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:moodly/screens/landing_screen.dart';
+import 'package:moodly/screens/sign_in_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/notes_screen.dart';
 
@@ -18,7 +19,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const LandingScreen(),
+      home: const SignInScreen(),
 
     );
   }
