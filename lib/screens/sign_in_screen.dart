@@ -89,7 +89,7 @@ class SignInScreen extends StatelessWidget {
                     horizontal: 30, vertical: 10),
               ),
               onPressed: () {
-                // Save note logic here
+                // Change to landing screen(switch to home once completeted)
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const LandingScreen()));
               },
               child: const Text('Login',
