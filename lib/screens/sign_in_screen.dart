@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 //import 'package:moodly/screens/home_screen.dart';
-import 'package:moodly/screens/landing_screen.dart';
+//import 'package:moodly/screens/landing_screen.dart';
 import 'sign_up_screen.dart';
-//import 'notes_screen.dart';
+import 'notes_screen.dart';
 
 class SignInScreen extends StatelessWidget {
   const SignInScreen({super.key});
@@ -89,8 +89,8 @@ class SignInScreen extends StatelessWidget {
                     horizontal: 30, vertical: 10),
               ),
               onPressed: () {
-                // Change to landing screen(switch to home once completeted)
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const LandingScreen()));
+                // Change to landing screen
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const NotesScreen()));
               },
               child: const Text('Login',
                   style: TextStyle(color: Colors.white, fontSize: 25)),
