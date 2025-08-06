@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:moodly/screens/home_screen.dart';
+//import 'package:moodly/screens/home_screen.dart';
 import 'package:moodly/screens/landing_screen.dart';
 import 'sign_up_screen.dart';
-import 'notes_screen.dart';
+//import 'notes_screen.dart';
 
 class SignInScreen extends StatelessWidget {
   const SignInScreen({super.key});
