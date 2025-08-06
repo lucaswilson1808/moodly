@@ -99,7 +99,7 @@ class SignInScreen extends StatelessWidget {
 
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF2D7AF8),
+                backgroundColor: Color(0xFF0A1F3F),
                 padding: const EdgeInsets.symmetric(
                     horizontal: 20, vertical: 10),
               ),
