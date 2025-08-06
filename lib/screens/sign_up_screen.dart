@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:moodly/screens/home_screen.dart';
 import 'package:moodly/screens/landing_screen.dart';
-import 'sign_up_screen.dart';
+
 import 'notes_screen.dart';
-
-class SignInScreen extends StatelessWidget {
-  const SignInScreen({super.key});
-
+import 'sign_in_screen.dart';
+class SignUpScreen extends StatelessWidget {
+  const SignUpScreen({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -34,14 +33,15 @@ class SignInScreen extends StatelessWidget {
               width: 300, // Adjust width as needed
               height: 105,  // Adjust height as needed
             ),
-            SizedBox(height: 100), // Space between logo and inputs
+            SizedBox(height: 50), // Space between logo and inputs
 
-            // Username/Email TextField
+            // Email TextField
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
+                keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
-                  hintText: 'Username/Email',
+                  hintText: 'Email',
                   hintStyle: TextStyle(color: Colors.white),
                   filled: true,
                   fillColor: Color(0xFF0A1F3F),
@@ -50,8 +50,32 @@ class SignInScreen extends StatelessWidget {
                     borderSide: BorderSide(
                       color: Colors.white,
                       width: 10.5, // Slightly thicker when focused
+                    ),
                   ),
+                  prefixIcon: Icon(Icons.email, color: Colors.white),
+                ),
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            SizedBox(height: 20), // Space between inputs
+
+            //Username TextField
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Username',
+                  hintStyle: TextStyle(color: Colors.white),
+                  filled: true,
+                  fillColor: Color(0xFF0A1F3F),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                      color: Colors.white,
+                      width: 10.5, // Slightly thicker when focused
+                    ),
                   ),
+                  prefixIcon: Icon(Icons.person, color: Colors.white), // Person icon
                 ),
                 style: TextStyle(color: Colors.white),
               ),
@@ -75,6 +99,7 @@ class SignInScreen extends StatelessWidget {
                       width: 10.5, // Match your Username field
                     ),
                   ),
+                  prefixIcon: Icon(Icons.lock, color: Colors.white), // Lock icon
                 ),
                 style: TextStyle(color: Colors.white),
               ),
@@ -92,7 +117,7 @@ class SignInScreen extends StatelessWidget {
                 // Save note logic here
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const LandingScreen()));
               },
-              child: const Text('Login',
+              child: const Text('Sign Up',
                   style: TextStyle(color: Colors.white, fontSize: 25)),
             ),
             SizedBox(height: 10), // Space between inputs
@@ -105,12 +130,12 @@ class SignInScreen extends StatelessWidget {
               ),
               onPressed: () {
                 // Save note logic here
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const SignUpScreen()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const SignInScreen()));
               },
-              child: const Text('Sign Up',
+              child: const Text('Login',
                   style: TextStyle(color: Colors.white, fontSize: 18)),
             ),
-        ],
+          ],
         ),
       ),
     );
