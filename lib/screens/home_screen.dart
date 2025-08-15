@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/notes_service.dart';
+import 'mood_chart.dart'; // <-- make sure this file exports class MoodChart
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -49,19 +50,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   // maybe show a dialog or about page
                 }
               },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'settings',
-                  child: Text('Settings'),
-                ),
-                const PopupMenuItem(
-                  value: 'about',
-                  child: Text('About'),
-                ),
-                const PopupMenuItem(
-                  value: 'logout',
-                  child: Text('Log Out'),
-                ),
+              itemBuilder: (context) => const [
+                PopupMenuItem(value: 'settings', child: Text('Settings')),
+                PopupMenuItem(value: 'about', child: Text('About')),
+                PopupMenuItem(value: 'logout', child: Text('Log Out')),
               ],
             ),
           ),
@@ -93,10 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         SizedBox(height: 10),
                         Text(
                           'Awesome',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
-                          ),
+                          style: TextStyle(fontSize: 18, color: Colors.white),
                         ),
                       ],
                     ),
@@ -155,12 +144,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 30),
                 const Text(
                   "You can make any day a good day.",
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white,
-                  ),
+                  style: TextStyle(fontSize: 18, color: Colors.white),
                 ),
                 const SizedBox(height: 20),
+
+                // If this image path isn't set up in pubspec.yaml, comment it out to avoid errors.
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: Image.asset(
@@ -170,41 +158,62 @@ class _HomeScreenState extends State<HomeScreen> {
                     fit: BoxFit.cover,
                   ),
                 ),
+
                 const SizedBox(height: 20),
                 const Spacer(),
+
+                // ==== Bottom Bar ====
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.blue[900],
                     borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(20)),
+                    const BorderRadius.vertical(top: Radius.circular(20)),
                   ),
                   padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(Icons.emoji_emotions,
-                              color: Colors.white, size: 36),
-                          SizedBox(height: 4),
-                          Text('Mood Chart',
-                              style: TextStyle(color: Colors.white)),
-                        ],
+                      // Mood Chart (make tappable)
+                      InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () {
+                          // If your class is named MoodScreen or MoodChartScreen,
+                          // change MoodChart() below to match.
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const MoodChart(),
+                            ),
+                          );
+                        },
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.emoji_emotions,
+                                color: Colors.white, size: 36),
+                            SizedBox(height: 4),
+                            Text('Mood Chart',
+                                style: TextStyle(color: Colors.white)),
+                          ],
+                        ),
                       ),
-                      Column(
+
+                      // Profile (placeholder)
+                      const Column(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
+                        children: [
                           Icon(Icons.person, color: Colors.white, size: 36),
                           SizedBox(height: 4),
                           Text('Profile',
                               style: TextStyle(color: Colors.white)),
                         ],
                       ),
-                      Column(
+
+                      // Settings (placeholder)
+                      const Column(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
+                        children: [
                           Icon(Icons.settings, color: Colors.white, size: 36),
                           SizedBox(height: 4),
                           Text('Settings',
