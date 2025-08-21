@@ -1,14 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 //import 'package:moodly/screens/home_screen.dart';
 //import 'package:moodly/screens/landing_screen.dart';
 import 'sign_up_screen.dart';
 import 'notes_screen.dart';
 
-class SignInScreen extends StatelessWidget {
+class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
 
   @override
+  State<SignInScreen> createState() => _SignInScreenState();
+}
+
+class _SignInScreenState extends State<SignInScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       appBar: AppBar(
         actions: [
@@ -40,6 +52,9 @@ class SignInScreen extends StatelessWidget {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
+                controller: _emailController,
+                enableSuggestions: false,
+                autocorrect: false,
                 decoration: InputDecoration(
                   hintText: 'Username/Email',
                   hintStyle: TextStyle(color: Colors.white),
@@ -62,6 +77,9 @@ class SignInScreen extends StatelessWidget {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
+                controller: _passwordController,
+                enableSuggestions: false,
+                autocorrect: false,
                 obscureText: true, // Hides password text
                 decoration: InputDecoration(
                   hintText: 'Password',
@@ -86,11 +104,50 @@ class SignInScreen extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Color(0xFF0A1F3F),
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 30, vertical: 10),
+                    horizontal: 48, vertical: 10),
               ),
-              onPressed: () {
-                // Change to landing screen
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const NotesScreen()));
+              onPressed: () async {
+                try {
+                  String emailToUse = _emailController.text;
+
+                  // Check if user entered a username (no @ symbol)
+                  if (!_emailController.text.contains('@')) {
+                    // Look up email by username in Firestore
+                    QuerySnapshot userQuery = await FirebaseFirestore.instance
+                        .collection('users')
+                        .where('username', isEqualTo: _emailController.text)
+                        .get();
+
+                    if (userQuery.docs.isNotEmpty) {
+                      emailToUse = userQuery.docs.first['email'];
+                    } else {
+                      throw Exception('Username not found');
+                    }
+                  }
+
+                  // Sign in with email
+                  await FirebaseAuth.instance.signInWithEmailAndPassword(
+                    email: emailToUse,
+                    password: _passwordController.text,
+                  );
+
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const NotesScreen()));
+                } catch (e) {
+                  String errorMessage;
+                  if (e.toString().contains('Username not found')) {
+                    errorMessage = 'Username not found. Please check your username or try using your email.';
+                  } else if (e.toString().contains('user-not-found')) {
+                    errorMessage = 'Account not found. Please sign up first!';
+                  } else if (e.toString().contains('wrong-password')) {
+                    errorMessage = 'Incorrect password. Please try again.';
+                  } else {
+                    errorMessage = 'Login failed: ${e.toString()}';
+                  }
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(errorMessage)),
+                  );
+                }
               },
               child: const Text('Login',
                   style: TextStyle(color: Colors.white, fontSize: 25)),
