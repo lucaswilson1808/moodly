@@ -3,10 +3,21 @@ import 'package:flutter/material.dart';
 //import 'package:moodly/screens/landing_screen.dart';
 import 'notes_screen.dart';
 import 'sign_in_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class SignUpScreen extends StatelessWidget {
+
+class SignUpScreen extends StatefulWidget  {
   const SignUpScreen({super.key});
+
   @override
+  State<SignUpScreen> createState() => _SignUpScreenState();
+}
+class _SignUpScreenState extends State<SignUpScreen> {
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -39,7 +50,10 @@ class SignUpScreen extends StatelessWidget {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
+                controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
+                enableSuggestions: false,
+                autocorrect: false,
                 decoration: InputDecoration(
                   hintText: 'Email',
                   hintStyle: TextStyle(color: Colors.white),
@@ -63,6 +77,9 @@ class SignUpScreen extends StatelessWidget {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
+                controller: _usernameController,
+                enableSuggestions: false,
+                autocorrect: false,
                 decoration: InputDecoration(
                   hintText: 'Username',
                   hintStyle: TextStyle(color: Colors.white),
@@ -87,6 +104,9 @@ class SignUpScreen extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
                 obscureText: true, // Hides password text
+                controller: _passwordController,
+                enableSuggestions: false,
+                autocorrect: false,
                 decoration: InputDecoration(
                   hintText: 'Password',
                   hintStyle: TextStyle(color: Colors.white),
@@ -113,15 +133,55 @@ class SignUpScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 30, vertical: 10),
               ),
-              onPressed: () {
-                // Change to landing screen
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const NotesScreen()));
+              onPressed: () async {
+                try {
+                  // Create user account
+                  UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                    email: _emailController.text,
+                    password: _passwordController.text,
+                  );
+
+                  // Save user data to Firestore
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(userCredential.user!.uid)
+                      .set({
+                    'username': _usernameController.text,
+                    'email': _emailController.text,
+                    'createdAt': FieldValue.serverTimestamp(),
+                  });
+
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const NotesScreen()));
+                } catch (e) {
+                  String errorMessage;
+                  if (e.toString().contains('email-already-in-use')) {
+                    errorMessage = 'This email is already registered. Please login instead!';
+                  } else if (e.toString().contains('weak-password')) {
+                    errorMessage = 'Password is too weak. Please use a stronger password.';
+                  } else if (e.toString().contains('invalid-email')) {
+                    errorMessage = 'Please enter a valid email address.';
+                  } else {
+                    errorMessage = 'Error: ${e.toString()}';
+                  }
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(errorMessage)),
+                  );
+                }
               },
               child: const Text('Sign Up',
                   style: TextStyle(color: Colors.white, fontSize: 25)),
             ),
             SizedBox(height: 10), // Space between inputs
+            //Database should look like
+            /*users/
+                [user-uid]/
+                username: "their_username"
+                email: "their_email"
+                createdAt: timestamp
+             */
 
+            //Login Button
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Color(0xFF0A1F3F),
