@@ -67,17 +67,23 @@ class _NotesScreenState extends State<NotesScreen> {
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Push content down toward the middle
+            const Spacer(flex: 1),
+
+            // Title
             const Text(
               'Want to add a note?',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+
+            // Text Field
             TextField(
               controller: _controller,
               maxLines: 5,
@@ -90,34 +96,38 @@ class _NotesScreenState extends State<NotesScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo[900],
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 10),
-                  ),
-                  onPressed: _saveNote,
-                  child: const Text(
-                    'Save Note',
-                    style: TextStyle(color: Colors.white, fontSize: 20),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Skip',
-                    style: TextStyle(color: Colors.white, fontSize: 18),
-                  ),
-                ),
-              ],
+            const SizedBox(height: 20),
+
+            // Save button
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.indigo[900],
+                padding:
+                const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+              ),
+              onPressed: _saveNote,
+              child: const Text(
+                'Save Note',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
             ),
-            const SizedBox(height: 24),
+
+            const SizedBox(height: 12),
+
+            // Skip button under Save
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Skip',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+            ),
+            const SizedBox(height: 30),
+
+            // Past Notes
             const Text(
               'Your Past Notes:',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 24,
                 color: Colors.white,
@@ -125,25 +135,27 @@ class _NotesScreenState extends State<NotesScreen> {
               ),
             ),
             const SizedBox(height: 12),
+
             Expanded(
+              flex: 3,
               child: _notes.isEmpty
                   ? const Center(
-                      child: Text(
-                        'No notes yet. Start writing something.',
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                    )
+                child: Text(
+                  'No notes yet. Start writing something.',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              )
                   : ListView.separated(
-                      itemCount: _notes.length,
-                      separatorBuilder: (_, __) =>
-                          const Divider(color: Colors.white24),
-                      itemBuilder: (context, index) => ListTile(
-                        title: Text(
-                          _notes[index],
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ),
+                itemCount: _notes.length,
+                separatorBuilder: (_, __) =>
+                const Divider(color: Colors.white24),
+                itemBuilder: (context, index) => ListTile(
+                  title: Text(
+                    _notes[index],
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
             ),
           ],
         ),

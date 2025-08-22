@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'notes_screen.dart';
 
-class MoodChart extends StatefulWidget { // Renamed from MoodCheckInScreen
+class MoodChart extends StatefulWidget {
   const MoodChart({super.key});
 
   @override
@@ -9,8 +10,8 @@ class MoodChart extends StatefulWidget { // Renamed from MoodCheckInScreen
 
 class _MoodChartState extends State<MoodChart> {
   // UI colors
-  static const Color primaryBlue = Color(0xFF2D7AF8); // screen background
-  static const Color darkNavy   = Color(0xFF0B1F3F); // for Next button
+  static const Color primaryBlue = Color(0xFF2D7AF8);
+  static const Color darkNavy   = Color(0xFF0B1F3F);
   static const Color yellow     = Color(0xFFFFE08A);
   static const Color mint       = Color(0xFFA8E6CF);
   static const Color pink       = Color(0xFFFFB3C1);
@@ -175,10 +176,19 @@ class _MoodChartState extends State<MoodChart> {
                     final choice = customSelected
                         ? 'Custom'
                         : moods[selectedIndex!].label;
+
+                    // Optional: keep your SnackBar feedback
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Selected: $choice')),
                     );
-                    // TODO: Navigate to Add Notes screen, etc.
+
+                    // ✅ Navigate to NotesScreen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const NotesScreen(),
+                      ),
+                    );
                   }
                       : null,
                   child: const Text(
