@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/notes_service.dart';
+import 'home_screen.dart'; // ✅ import HomeScreen (adjust path if needed)
 
 class NotesScreen extends StatefulWidget {
   const NotesScreen({super.key});
@@ -33,6 +34,7 @@ class _NotesScreenState extends State<NotesScreen> {
       await service.writeNote(note);
       _controller.clear();
       _loadNotes();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Note saved!')),
       );
@@ -98,12 +100,11 @@ class _NotesScreenState extends State<NotesScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Save button
+            // Save button (centered)
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.indigo[900],
-                padding:
-                const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
               ),
               onPressed: _saveNote,
               child: const Text(
@@ -114,9 +115,14 @@ class _NotesScreenState extends State<NotesScreen> {
 
             const SizedBox(height: 12),
 
-            // Skip button under Save
+            // Skip button under Save -> go to HomeScreen
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+                );
+              },
               child: const Text(
                 'Skip',
                 style: TextStyle(color: Colors.white, fontSize: 18),

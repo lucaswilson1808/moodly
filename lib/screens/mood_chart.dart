@@ -16,21 +16,22 @@ class _MoodChartState extends State<MoodChart> {
   static const Color mint       = Color(0xFFA8E6CF);
   static const Color pink       = Color(0xFFFFB3C1);
 
-  // Emoji grid model
+  // Emoji grid model (built-in moods)
   final List<_Mood> moods = const [
-    _Mood(label: 'Awesome', emoji: '😄',  bg: yellow),
-    _Mood(label: 'Good',    emoji: '🙂',  bg: yellow),
-    _Mood(label: 'Okay',    emoji: '🙁',  bg: yellow),
-    _Mood(label: 'Neutral', emoji: '😐',  bg: mint),
-    _Mood(label: 'Bad',     emoji: '☹️',  bg: yellow),
-    _Mood(label: 'Sad',     emoji: '😢',  bg: pink),
-    _Mood(label: 'Tired',   emoji: '🥱',  bg: mint),
-    _Mood(label: 'Stressed',emoji: '😟',  bg: yellow),
-    _Mood(label: 'Angry',   emoji: '😠',  bg: yellow),
+    _Mood(label: 'Awesome',  emoji: '😄', bg: yellow),
+    _Mood(label: 'Good',     emoji: '🙂', bg: yellow),
+    _Mood(label: 'Okay',     emoji: '🙁', bg: yellow),
+    _Mood(label: 'Neutral',  emoji: '😐', bg: mint),
+    _Mood(label: 'Bad',      emoji: '☹️', bg: yellow),
+    _Mood(label: 'Sad',      emoji: '😢', bg: pink),
+    _Mood(label: 'Tired',    emoji: '🥱', bg: mint),
+    _Mood(label: 'Stressed', emoji: '😟', bg: yellow),
+    _Mood(label: 'Angry',    emoji: '😠', bg: yellow),
   ];
 
-  int? selectedIndex; // which mood user tapped
-  bool customSelected = false;
+  int? selectedIndex;          // which built-in mood is tapped
+  bool customSelected = false; // true if user picked a custom mood
+  CustomMood? _customMood;     // the actual custom mood chosen
 
   @override
   Widget build(BuildContext context) {
@@ -109,6 +110,7 @@ class _MoodChartState extends State<MoodChart> {
                       setState(() {
                         selectedIndex = i;
                         customSelected = false;
+                        _customMood = null;
                       });
                     },
                   ),
@@ -116,15 +118,28 @@ class _MoodChartState extends State<MoodChart> {
               ),
             ),
 
-            // Custom big circle
+            // Custom big circle (opens creator)
             Padding(
               padding: const EdgeInsets.only(top: 6, bottom: 18),
               child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    selectedIndex = null;
-                    customSelected = true;
-                  });
+                onTap: () async {
+                  final result = await showModalBottomSheet<CustomMood>(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => const _CustomMoodSheet(),
+                  );
+
+                  if (result != null) {
+                    setState(() {
+                      selectedIndex = null;
+                      customSelected = true;
+                      _customMood   = result;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Custom mood: ${result.label}')),
+                    );
+                  }
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 160),
@@ -174,15 +189,13 @@ class _MoodChartState extends State<MoodChart> {
                   onPressed: (selectedIndex != null || customSelected)
                       ? () {
                     final choice = customSelected
-                        ? 'Custom'
+                        ? (_customMood?.label ?? 'Custom')
                         : moods[selectedIndex!].label;
 
-                    // Optional: keep your SnackBar feedback
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Selected: $choice')),
                     );
 
-                    // ✅ Navigate to NotesScreen
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -204,6 +217,8 @@ class _MoodChartState extends State<MoodChart> {
     );
   }
 }
+
+/* --------------------------- Mood grid tile --------------------------- */
 
 class _MoodTile extends StatelessWidget {
   final _Mood mood;
@@ -268,4 +283,193 @@ class _Mood {
   final String emoji;
   final Color bg;
   const _Mood({required this.label, required this.emoji, required this.bg});
+}
+
+/* ===================== Custom Mood Creator (Bottom Sheet) ===================== */
+
+class CustomMood {
+  final String emoji;   // e.g. '🤗'
+  final String label;   // e.g. 'Grateful'
+  final int bgColor;    // store as int (Color value)
+
+  CustomMood({
+    required this.emoji,
+    required this.label,
+    required this.bgColor,
+  });
+}
+
+class _CustomMoodSheet extends StatefulWidget {
+  const _CustomMoodSheet();
+
+  @override
+  State<_CustomMoodSheet> createState() => _CustomMoodSheetState();
+}
+
+class _CustomMoodSheetState extends State<_CustomMoodSheet> {
+  final TextEditingController _labelCtrl = TextEditingController();
+  String _emoji = '🤗';
+  Color _color  = const Color(0xFFFFE08A); // default yellow
+
+  // Small curated emoji set (expand later or swap for a package)
+  final List<String> _emojis = const [
+    '🤗','🥹','😴','🤯','🤨','🤩','😭','😤','😟','😌','😇','🫠','😵‍💫','😎','🤒'
+  ];
+
+  final List<Color> _palette = const [
+    Color(0xFFFFE08A), // yellow
+    Color(0xFFA8E6CF), // mint
+    Color(0xFFFFB3C1), // pink
+    Color(0xFFB3E5FC), // light blue
+    Color(0xFFD1C4E9), // lavender
+    Color(0xFFFFF59D), // soft yellow
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: viewInsets),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Grab handle
+            Container(
+              width: 40, height: 4,
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.black12, borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Text('Create a custom mood',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 16),
+
+            // Emoji row
+            SizedBox(
+              height: 56,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _emojis.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) {
+                  final e = _emojis[i];
+                  final selected = e == _emoji;
+                  return GestureDetector(
+                    onTap: () => setState(() => _emoji = e),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 120),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: selected ? Colors.black12 : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: selected ? Colors.black54 : Colors.black26,
+                        ),
+                      ),
+                      child: Text(e, style: const TextStyle(fontSize: 28)),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Color palette
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: _palette.map((c) {
+                final selected = c.value == _color.value;
+                return GestureDetector(
+                  onTap: () => setState(() => _color = c),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 6),
+                    width: 28, height: 28,
+                    decoration: BoxDecoration(
+                      color: c, shape: BoxShape.circle,
+                      border: Border.all(
+                        color: selected ? Colors.black : Colors.black12, width: 2,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+
+            // Label
+            TextField(
+              controller: _labelCtrl,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                labelText: 'Label (optional)',
+                hintText: 'e.g., Grateful, Drained, Calm',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Preview
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 56, height: 56,
+                  decoration: BoxDecoration(
+                    color: _color, shape: BoxShape.circle,
+                    border: Border.all(color: Colors.black26),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(_emoji, style: const TextStyle(fontSize: 30)),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  _labelCtrl.text.isEmpty ? 'Custom' : _labelCtrl.text,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      final mood = CustomMood(
+                        emoji: _emoji,
+                        label: _labelCtrl.text.trim().isEmpty
+                            ? 'Custom'
+                            : _labelCtrl.text.trim(),
+                        bgColor: _color.value,
+                      );
+                      Navigator.pop(context, mood);
+                    },
+                    child: const Text('Use Mood'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
 }
