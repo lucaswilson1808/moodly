@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:moodly/screens/account_screen.dart';
 import 'package:provider/provider.dart';
 
 import 'services/theme_notifier.dart';
@@ -40,11 +41,12 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       themeMode: themeNotifier.currentTheme,
-      home: const LandingScreen(),
+      home: const AccountScreen(displayName: "Name", email: "email"),
       routes: {
         '/home': (context) => const HomeScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/notes': (context) => const NotesScreen(),
+        '/account': (context) => const AccountScreen(displayName: "Name", email: "email")
       },
     );
   }
