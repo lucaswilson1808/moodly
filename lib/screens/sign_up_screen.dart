@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
-//import 'package:moodly/screens/home_screen.dart';
-//import 'package:moodly/screens/landing_screen.dart';
-import 'notes_screen.dart';
-import 'sign_in_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:moodly/screens/landing_screen.dart';
+import 'sign_in_screen.dart';
+import 'notes_screen.dart';
 
-
-class SignUpScreen extends StatefulWidget  {
+class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
 }
+
 class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -24,31 +23,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.info_outline, color: Colors.blueAccent),
-            onPressed: () {
-              // Optional: Show about dialog or tooltip
-            },
+            onPressed: () {},
           ),
         ],
-        backgroundColor: Color(0xFF2D7AF8),
+        backgroundColor: const Color(0xFF2D7AF8),
         elevation: 0,
       ),
       body: Container(
-        color: Color(0xFF2D7AF8),
+        color: const Color(0xFF2D7AF8),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
-          children:  [
-            SizedBox(height: 25), // Space from top
-
+          children: [
+            const SizedBox(height: 25),
             Image.asset(
               'assets/logos/moodly_light_theme_logo.png',
-              width: 300, // Adjust width as needed
-              height: 105,  // Adjust height as needed
+              width: 300,
+              height: 105,
             ),
-            SizedBox(height: 50), // Space between logo and inputs
+            const SizedBox(height: 50),
 
-            // Email TextField
+            // Email
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -56,92 +52,84 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 autocorrect: false,
                 decoration: InputDecoration(
                   hintText: 'Email',
-                  hintStyle: TextStyle(color: Colors.white),
+                  hintStyle: const TextStyle(color: Colors.white),
                   filled: true,
-                  fillColor: Color(0xFF0A1F3F),
+                  fillColor: const Color(0xFF0A1F3F),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(
-                      color: Colors.white,
-                      width: 10.5, // Slightly thicker when focused
-                    ),
+                    borderSide:
+                        const BorderSide(color: Colors.white, width: 1.5),
                   ),
-                  prefixIcon: Icon(Icons.email, color: Colors.white),
+                  prefixIcon: const Icon(Icons.email, color: Colors.white),
                 ),
-                style: TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.white),
               ),
             ),
-            SizedBox(height: 20), // Space between inputs
+            const SizedBox(height: 20),
 
-            //Username TextField
+            // Username
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
                 controller: _usernameController,
                 enableSuggestions: false,
                 autocorrect: false,
                 decoration: InputDecoration(
                   hintText: 'Username',
-                  hintStyle: TextStyle(color: Colors.white),
+                  hintStyle: const TextStyle(color: Colors.white),
                   filled: true,
-                  fillColor: Color(0xFF0A1F3F),
+                  fillColor: const Color(0xFF0A1F3F),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(
-                      color: Colors.white,
-                      width: 10.5, // Slightly thicker when focused
-                    ),
+                    borderSide:
+                        const BorderSide(color: Colors.white, width: 1.5),
                   ),
-                  prefixIcon: Icon(Icons.person, color: Colors.white), // Person icon
+                  prefixIcon: const Icon(Icons.person, color: Colors.white),
                 ),
-                style: TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.white),
               ),
             ),
-            SizedBox(height: 20), // Space between inputs
+            const SizedBox(height: 20),
 
-            // Password TextField
+            // Password
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
-                obscureText: true, // Hides password text
+                obscureText: true,
                 controller: _passwordController,
                 enableSuggestions: false,
                 autocorrect: false,
                 decoration: InputDecoration(
                   hintText: 'Password',
-                  hintStyle: TextStyle(color: Colors.white),
+                  hintStyle: const TextStyle(color: Colors.white),
                   filled: true,
-                  fillColor: Color(0xFF0A1F3F),
+                  fillColor: const Color(0xFF0A1F3F),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(
-                      color: Colors.white,
-                      width: 10.5, // Match your Username field
-                    ),
+                    borderSide:
+                        const BorderSide(color: Colors.white, width: 1.5),
                   ),
-                  prefixIcon: Icon(Icons.lock, color: Colors.white), // Lock icon
+                  prefixIcon: const Icon(Icons.lock, color: Colors.white),
                 ),
-                style: TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.white),
               ),
             ),
-
-            SizedBox(height: 50), // Space between inputs
+            const SizedBox(height: 50),
 
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF0A1F3F),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 30, vertical: 10),
+                backgroundColor: const Color(0xFF0A1F3F),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
               ),
               onPressed: () async {
                 try {
-                  // Create user account
-                  UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                  UserCredential userCredential = await FirebaseAuth.instance
+                      .createUserWithEmailAndPassword(
                     email: _emailController.text,
                     password: _passwordController.text,
                   );
 
-                  // Save user data to Firestore
                   await FirebaseFirestore.instance
                       .collection('users')
                       .doc(userCredential.user!.uid)
@@ -151,13 +139,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     'createdAt': FieldValue.serverTimestamp(),
                   });
 
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const NotesScreen()));
+                  if (!mounted) return;
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          const LandingScreen(fromSignUp: true),
+                    ),
+                  );
                 } catch (e) {
                   String errorMessage;
                   if (e.toString().contains('email-already-in-use')) {
-                    errorMessage = 'This email is already registered. Please login instead!';
+                    errorMessage =
+                        'This email is already registered. Please login instead!';
                   } else if (e.toString().contains('weak-password')) {
-                    errorMessage = 'Password is too weak. Please use a stronger password.';
+                    errorMessage =
+                        'Password is too weak. Please use a stronger password.';
                   } else if (e.toString().contains('invalid-email')) {
                     errorMessage = 'Please enter a valid email address.';
                   } else {
@@ -169,31 +166,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   );
                 }
               },
-              child: const Text('Sign Up',
-                  style: TextStyle(color: Colors.white, fontSize: 25)),
+              child: const Text(
+                'Sign Up',
+                style: TextStyle(color: Colors.white, fontSize: 25),
+              ),
             ),
-            SizedBox(height: 10), // Space between inputs
-            //Database should look like
-            /*users/
-                [user-uid]/
-                username: "their_username"
-                email: "their_email"
-                createdAt: timestamp
-             */
+            const SizedBox(height: 10),
 
-            //Login Button
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF0A1F3F),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 10),
+                backgroundColor: const Color(0xFF0A1F3F),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               ),
               onPressed: () {
-                // Save note logic here
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const SignInScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SignInScreen()),
+                );
               },
-              child: const Text('Login',
-                  style: TextStyle(color: Colors.white, fontSize: 18)),
+              child: const Text(
+                'Login',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
             ),
           ],
         ),

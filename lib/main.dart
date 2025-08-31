@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:moodly/screens/landing_screen.dart';
-import 'package:moodly/screens/sign_in_screen.dart';
+import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+
+import 'services/theme_notifier.dart';
+import 'screens/landing_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/notes_screen.dart';
+import 'screens/settings_screen.dart';
+import 'screens/account_screen.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(const MyApp());
+  await Firebase.initializeApp(); // uses platform configs already in your project
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeNotifier(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -16,14 +25,37 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeNotifier = Provider.of<ThemeNotifier>(context);
+
     return MaterialApp(
       title: 'Moodly',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
       ),
-      home: const SignInScreen(),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      themeMode: themeNotifier.currentTheme,
 
+      // Auth gate lives inside LandingScreen (routes to SignIn or Home)
+      home: const LandingScreen(),
+
+      routes: {
+        '/home': (context) => const HomeScreen(),
+        '/settings': (context) => const SettingsScreen(),
+        '/notes': (context) => const NotesScreen(),
+        '/account': (context) =>
+            const AccountScreen(displayName: "Name", email: "email"),
+      },
     );
   }
 }
