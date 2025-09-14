@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/notes_service.dart';
-import 'mood_chart.dart'; // <-- make sure this file exports class MoodChart
+import 'mood_chart.dart';
+import 'mood_history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -148,7 +149,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // If this image path isn't set up in pubspec.yaml, comment it out to avoid errors.
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: Image.asset(
@@ -174,12 +174,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      // Mood Chart (make tappable)
+                      // Mood Chart
                       InkWell(
                         borderRadius: BorderRadius.circular(12),
                         onTap: () {
-                          // If your class is named MoodScreen or MoodChartScreen,
-                          // change MoodChart() below to match.
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -194,6 +192,29 @@ class _HomeScreenState extends State<HomeScreen> {
                                 color: Colors.white, size: 36),
                             SizedBox(height: 4),
                             Text('Mood Chart',
+                                style: TextStyle(color: Colors.white)),
+                          ],
+                        ),
+                      ),
+
+                      // ✅ Mood History button
+                      InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const MoodHistoryScreen(),
+                            ),
+                          );
+                        },
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.bar_chart,
+                                color: Colors.white, size: 36),
+                            SizedBox(height: 4),
+                            Text('History',
                                 style: TextStyle(color: Colors.white)),
                           ],
                         ),
