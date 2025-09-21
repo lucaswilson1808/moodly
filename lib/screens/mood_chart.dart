@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'notes_screen.dart';
 
 class MoodChart extends StatefulWidget {
@@ -11,27 +13,69 @@ class MoodChart extends StatefulWidget {
 class _MoodChartState extends State<MoodChart> {
   // UI colors
   static const Color primaryBlue = Color(0xFF2D7AF8);
-  static const Color darkNavy   = Color(0xFF0B1F3F);
-  static const Color yellow     = Color(0xFFFFE08A);
-  static const Color mint       = Color(0xFFA8E6CF);
-  static const Color pink       = Color(0xFFFFB3C1);
+  static const Color darkNavy = Color(0xFF0B1F3F);
+  static const Color yellow = Color(0xFFFFE08A);
+  static const Color mint = Color(0xFFA8E6CF);
+  static const Color pink = Color(0xFFFFB3C1);
 
-  // Emoji grid model (built-in moods)
+  // Built-in moods
   final List<_Mood> moods = const [
-    _Mood(label: 'Awesome',  emoji: '😄', bg: yellow),
-    _Mood(label: 'Good',     emoji: '🙂', bg: yellow),
-    _Mood(label: 'Okay',     emoji: '🙁', bg: yellow),
-    _Mood(label: 'Neutral',  emoji: '😐', bg: mint),
-    _Mood(label: 'Bad',      emoji: '☹️', bg: yellow),
-    _Mood(label: 'Sad',      emoji: '😢', bg: pink),
-    _Mood(label: 'Tired',    emoji: '🥱', bg: mint),
+    _Mood(label: 'Awesome', emoji: '😄', bg: yellow),
+    _Mood(label: 'Good', emoji: '🙂', bg: yellow),
+    _Mood(label: 'Okay', emoji: '🙁', bg: yellow),
+    _Mood(label: 'Neutral', emoji: '😐', bg: mint),
+    _Mood(label: 'Bad', emoji: '☹️', bg: yellow),
+    _Mood(label: 'Sad', emoji: '😢', bg: pink),
+    _Mood(label: 'Tired', emoji: '🥱', bg: mint),
     _Mood(label: 'Stressed', emoji: '😟', bg: yellow),
-    _Mood(label: 'Angry',    emoji: '😠', bg: yellow),
+    _Mood(label: 'Angry', emoji: '😠', bg: yellow),
   ];
 
-  int? selectedIndex;          // which built-in mood is tapped
-  bool customSelected = false; // true if user picked a custom mood
-  CustomMood? _customMood;     // the actual custom mood chosen
+  // Current selection
+  int? selectedIndex;              // built-in mood index
+  bool customSelected = false;     // visual ring on big "Custom" circle
+  CustomMood? _customMood;         // chosen custom mood (drives Next enabled)
+
+  // Persisted custom moods
+  static const _prefsKeyCustomMoods = 'custom_moods';
+  final List<CustomMood> _customMoods = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCustomMoods();
+  }
+
+  Future<void> _loadCustomMoods() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getStringList(_prefsKeyCustomMoods) ?? [];
+    final loaded = raw
+        .map((s) => CustomMood.fromJson(jsonDecode(s) as Map<String, dynamic>))
+        .toList();
+    if (!mounted) return;
+    setState(() {
+      _customMoods
+        ..clear()
+        ..addAll(loaded);
+    });
+  }
+
+  Future<void> _saveCustomMood(CustomMood mood) async {
+    // Keep latest first, cap to 12
+    _customMoods.removeWhere((m) =>
+    m.emoji == mood.emoji && m.label == mood.label && m.bgColor == mood.bgColor);
+    _customMoods.insert(0, mood);
+    if (_customMoods.length > 12) {
+      _customMoods.removeRange(12, _customMoods.length);
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _prefsKeyCustomMoods,
+      _customMoods.map((m) => jsonEncode(m.toJson())).toList(growable: false),
+    );
+  }
+
+  bool get _hasSelection => selectedIndex != null || _customMood != null;
 
   @override
   Widget build(BuildContext context) {
@@ -49,20 +93,21 @@ class _MoodChartState extends State<MoodChart> {
                 applicationName: 'Moodly',
                 applicationVersion: '0.1',
                 children: const [
-                  Text('Tap a mood to select it. You can also choose “Custom”.')
+                  Text('Tap a mood to select it. You can also choose “Custom”.'),
                 ],
               );
             },
-          )
+          ),
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Title
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 4, 24, 8),
-              child: Text(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(18, 6, 18, 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Title
+              Text(
                 'Mood Check-In',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -71,113 +116,194 @@ class _MoodChartState extends State<MoodChart> {
                   fontWeight: FontWeight.w800,
                   shadows: [
                     Shadow(
-                      color: Colors.black.withOpacity(.25),
+                      color: Colors.black.withValues(alpha: .25),
                       offset: const Offset(0, 2),
                       blurRadius: 6,
-                    )
+                    ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 2),
-            const Text(
-              'How are you feeling?',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                height: 1.2,
+              const SizedBox(height: 4),
+              const Text(
+                'How are you feeling?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  height: 1.2,
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 18),
 
-            // Grid of emoji moods
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: GridView.builder(
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: moods.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    mainAxisSpacing: 18,
-                    crossAxisSpacing: 18,
-                    childAspectRatio: .82,
-                  ),
-                  itemBuilder: (ctx, i) => _MoodTile(
+              // Grid (shrinkWrap so page scrolls as one)
+              GridView.count(
+                crossAxisCount: 3,
+                mainAxisSpacing: 18,
+                crossAxisSpacing: 18,
+                childAspectRatio: .82,
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                children: List.generate(moods.length, (i) {
+                  return _MoodTile(
                     mood: moods[i],
-                    selected: selectedIndex == i && !customSelected,
+                    selected: selectedIndex == i && _customMood == null,
                     onTap: () {
                       setState(() {
                         selectedIndex = i;
-                        customSelected = false;
-                        _customMood = null;
+                        _customMood = null;     // built-in overrides custom
+                        customSelected = false; // only a visual ring flag
                       });
                     },
-                  ),
-                ),
-              ),
-            ),
-
-            // Custom big circle (opens creator)
-            Padding(
-              padding: const EdgeInsets.only(top: 6, bottom: 18),
-              child: GestureDetector(
-                onTap: () async {
-                  final result = await showModalBottomSheet<CustomMood>(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => const _CustomMoodSheet(),
                   );
+                }),
+              ),
 
-                  if (result != null) {
-                    setState(() {
-                      selectedIndex = null;
-                      customSelected = true;
-                      _customMood   = result;
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Custom mood: ${result.label}')),
+              const SizedBox(height: 18),
+
+              // Big "Custom" circle
+              Center(
+                child: GestureDetector(
+                  onTap: () async {
+                    final result = await showModalBottomSheet<CustomMood>(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => const _CustomMoodSheet(),
                     );
-                  }
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: customSelected ? Colors.black87 : Colors.transparent,
-                      width: 3,
+                    if (result != null) {
+                      await _saveCustomMood(result);
+                      if (!mounted) return;
+                      setState(() {
+                        selectedIndex = null;     // no built-in
+                        _customMood = result;     // ✅ drives Next enabled
+                        customSelected = true;    // visual ring on circle
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Custom mood saved: ${result.label}')),
+                      );
+                    }
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    width: 130,
+                    height: 130,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: customSelected ? Colors.black87 : Colors.transparent,
+                        width: 3,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: .15),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(.15),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      )
-                    ],
-                  ),
-                  alignment: Alignment.center,
-                  child: const Text(
-                    'Custom',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'Custom',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
 
-            // Next button
-            Padding(
-              padding: const EdgeInsets.fromLTRB(22, 0, 22, 22),
-              child: SizedBox(
-                width: double.infinity,
+              const SizedBox(height: 14),
+
+              // Saved custom moods header + row (with hint when empty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Your custom moods',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 70,
+                    child: _customMoods.isEmpty
+                        ? const Center(
+                      child: Text(
+                        'Tap “Custom” to create and save your own moods.',
+                        style: TextStyle(color: Colors.white60, fontSize: 12),
+                      ),
+                    )
+                        : ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      itemCount: _customMoods.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 10),
+                      itemBuilder: (_, i) {
+                        final cm = _customMoods[i];
+                        final selected = _customMood != null &&
+                            _customMood!.emoji == cm.emoji &&
+                            _customMood!.label == cm.label &&
+                            _customMood!.bgColor == cm.bgColor;
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              selectedIndex = null;
+                              _customMood = cm;   // ✅ enables Next
+                              customSelected = false; // ring stays on big circle only
+                            });
+                          },
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 46,
+                                height: 46,
+                                decoration: BoxDecoration(
+                                  color: Color(cm.bgColor),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: selected ? Colors.black87 : Colors.black26,
+                                    width: selected ? 3 : 1,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: .12),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(cm.emoji, style: const TextStyle(fontSize: 24)),
+                              ),
+                              const SizedBox(height: 4),
+                              SizedBox(
+                                width: 72,
+                                child: Text(
+                                  cm.label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 18),
+
+              // Next button (always visible since page scrolls)
+              SizedBox(
                 height: 54,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -186,21 +312,20 @@ class _MoodChartState extends State<MoodChart> {
                       borderRadius: BorderRadius.circular(26),
                     ),
                   ),
-                  onPressed: (selectedIndex != null || customSelected)
-                      ? () {
-                    final choice = customSelected
-                        ? (_customMood?.label ?? 'Custom')
+                  onPressed: _hasSelection
+                      ? () async {
+                    // If custom selected, bump it to the front again
+                    if (_customMood != null) {
+                      await _saveCustomMood(_customMood!);
+                    }
+                    final choice = _customMood != null
+                        ? _customMood!.label
                         : moods[selectedIndex!].label;
 
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Selected: $choice')),
-                    );
-
+                    if (!mounted) return;
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const NotesScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const NotesScreen()),
                     );
                   }
                       : null,
@@ -210,8 +335,8 @@ class _MoodChartState extends State<MoodChart> {
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -250,17 +375,14 @@ class _MoodTile extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(.15),
+                  color: Colors.black.withValues(alpha: .15),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
-                )
+                ),
               ],
             ),
             alignment: Alignment.center,
-            child: Text(
-              mood.emoji,
-              style: const TextStyle(fontSize: 40),
-            ),
+            child: Text(mood.emoji, style: const TextStyle(fontSize: 40)),
           ),
           const SizedBox(height: 8),
           Text(
@@ -288,15 +410,23 @@ class _Mood {
 /* ===================== Custom Mood Creator (Bottom Sheet) ===================== */
 
 class CustomMood {
-  final String emoji;   // e.g. '🤗'
-  final String label;   // e.g. 'Grateful'
-  final int bgColor;    // store as int (Color value)
+  final String emoji; // e.g. '🤗'
+  final String label; // e.g. 'Grateful'
+  final int bgColor;  // Color value
 
   CustomMood({
     required this.emoji,
     required this.label,
     required this.bgColor,
   });
+
+  Map<String, dynamic> toJson() => {'emoji': emoji, 'label': label, 'bgColor': bgColor};
+
+  factory CustomMood.fromJson(Map<String, dynamic> json) => CustomMood(
+    emoji: json['emoji'] as String,
+    label: json['label'] as String,
+    bgColor: json['bgColor'] as int,
+  );
 }
 
 class _CustomMoodSheet extends StatefulWidget {
@@ -309,9 +439,9 @@ class _CustomMoodSheet extends StatefulWidget {
 class _CustomMoodSheetState extends State<_CustomMoodSheet> {
   final TextEditingController _labelCtrl = TextEditingController();
   String _emoji = '🤗';
-  Color _color  = const Color(0xFFFFE08A); // default yellow
+  Color _color = const Color(0xFFFFE08A); // default yellow
 
-  // Small curated emoji set (expand later or swap for a package)
+  // Small curated emoji set
   final List<String> _emojis = const [
     '🤗','🥹','😴','🤯','🤨','🤩','😭','😤','😟','😌','😇','🫠','😵‍💫','😎','🤒'
   ];
@@ -342,10 +472,12 @@ class _CustomMoodSheetState extends State<_CustomMoodSheet> {
           children: [
             // Grab handle
             Container(
-              width: 40, height: 4,
+              width: 40,
+              height: 4,
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: Colors.black12, borderRadius: BorderRadius.circular(2),
+                color: Colors.black12,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
             const Text('Create a custom mood',
@@ -392,11 +524,14 @@ class _CustomMoodSheetState extends State<_CustomMoodSheet> {
                   onTap: () => setState(() => _color = c),
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 6),
-                    width: 28, height: 28,
+                    width: 28,
+                    height: 28,
                     decoration: BoxDecoration(
-                      color: c, shape: BoxShape.circle,
+                      color: c,
+                      shape: BoxShape.circle,
                       border: Border.all(
-                        color: selected ? Colors.black : Colors.black12, width: 2,
+                        color: selected ? Colors.black : Colors.black12,
+                        width: 2,
                       ),
                     ),
                   ),
@@ -412,7 +547,9 @@ class _CustomMoodSheetState extends State<_CustomMoodSheet> {
               decoration: InputDecoration(
                 labelText: 'Label (optional)',
                 hintText: 'e.g., Grateful, Drained, Calm',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -422,9 +559,11 @@ class _CustomMoodSheetState extends State<_CustomMoodSheet> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 56, height: 56,
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
-                    color: _color, shape: BoxShape.circle,
+                    color: _color,
+                    shape: BoxShape.circle,
                     border: Border.all(color: Colors.black26),
                   ),
                   alignment: Alignment.center,
