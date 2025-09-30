@@ -1,7 +1,12 @@
+import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/notes_service.dart';
 import 'landing_screen.dart';
+import 'mood_chart.dart';
+import 'mood_history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,10 +18,69 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _noteController = TextEditingController();
 
+  // ---- Quotes state ----
+  final _rng = Random();
+  List<String> _allQuotes = [];
+  List<int> _deck = []; // shuffled indices, consumed one-by-one
+  int _cursor = 0;
+  String _currentQuote = "You can make any day a good day.";
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _initQuotes();
+  }
+
   @override
   void dispose() {
+    _ticker?.cancel();
     _noteController.dispose();
     super.dispose();
+  }
+
+  Future<void> _initQuotes() async {
+    try {
+      final raw = await rootBundle.loadString('assets/quotes.txt');
+      final lines = raw
+          .split('\n')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+      if (lines.isNotEmpty) _allQuotes = lines;
+    } catch (_) {
+      _allQuotes = [
+        "Breathe. Start small. You’ve got this.",
+        "Progress over perfection.",
+        "You can restart your day at any moment."
+      ];
+    }
+
+    _reshuffleDeck();
+    _setNextQuote(immediate: true);
+
+    _ticker?.cancel();
+    _ticker = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      _setNextQuote();
+    });
+  }
+
+  void _reshuffleDeck() {
+    _deck = List<int>.generate(_allQuotes.length, (i) => i)..shuffle(_rng);
+    _cursor = 0;
+  }
+
+  void _setNextQuote({bool immediate = false}) {
+    if (_allQuotes.isEmpty) return;
+    if (_cursor >= _deck.length) _reshuffleDeck();
+    final idx = _deck[_cursor++];
+    final next = _allQuotes[idx];
+
+    setState(() {
+      _currentQuote = next;
+    });
+    // Fade is handled by AnimatedSwitcher via ValueKey change.
   }
 
   void _saveNote() async {
@@ -25,6 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final notesService = NotesService();
       await notesService.writeNote(noteText);
       _noteController.clear();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Note saved!")),
       );
@@ -88,18 +153,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
               },
               itemBuilder: (context) => const [
-                PopupMenuItem(
-                  value: 'settings',
-                  child: Text('Settings'),
-                ),
-                PopupMenuItem(
-                  value: 'about',
-                  child: Text('About'),
-                ),
-                PopupMenuItem(
-                  value: 'logout',
-                  child: Text('Log Out'),
-                ),
+                PopupMenuItem(value: 'settings', child: Text('Settings')),
+                PopupMenuItem(value: 'about', child: Text('About')),
+                PopupMenuItem(value: 'logout', child: Text('Log Out')),
               ],
             ),
           ),
@@ -131,18 +187,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         SizedBox(height: 10),
                         Text(
                           'Awesome',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
-                          ),
+                          style: TextStyle(fontSize: 18, color: Colors.white),
                         ),
                       ],
                     ),
                     const SizedBox(width: 20),
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         height: 100,
                         decoration: BoxDecoration(
                           color: Colors.grey[300],
@@ -167,9 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     TextButton(
-                      onPressed: () {
-                        _saveNote();
-                      },
+                      onPressed: _saveNote,
                       style: TextButton.styleFrom(
                         backgroundColor: Colors.blueAccent,
                         padding: const EdgeInsets.symmetric(
@@ -190,13 +241,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 const SizedBox(height: 30),
-                const Text(
-                  "You can make any day a good day.",
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white,
+
+                // Animated quote (fades when text changes)
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 500),
+                  transitionBuilder: (child, anim) =>
+                      FadeTransition(opacity: anim, child: child),
+                  child: Text(
+                    _currentQuote,
+                    key: ValueKey(_currentQuote),
+                    style: const TextStyle(fontSize: 18, color: Colors.white),
                   ),
                 ),
+
                 const SizedBox(height: 20),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
@@ -209,7 +266,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 20),
                 const Spacer(),
-                // ==== BOTTOM BAR (added "Notes" item) ====
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.blue[900],
@@ -221,19 +277,38 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      // Mood Chart (placeholder, unchanged)
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(Icons.emoji_emotions,
-                              color: Colors.white, size: 36),
-                          SizedBox(height: 4),
-                          Text('Mood Chart',
-                              style: TextStyle(color: Colors.white)),
-                        ],
+                      InkWell(
+                        onTap: () => Navigator.pushNamed(context, '/mood_chart'),
+                        borderRadius: BorderRadius.circular(12),
+                        child: const Padding(
+                          padding: EdgeInsets.all(6.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.emoji_emotions, color: Colors.white, size: 36),
+                              SizedBox(height: 4),
+                              Text('Mood Chart',
+                                  style: TextStyle(color: Colors.white)),
+                            ],
+                          ),
+                        ),
                       ),
-
-                      // Notes -> /notes
+                      InkWell(
+                        onTap: () => Navigator.pushNamed(context, '/reminders'),
+                        borderRadius: BorderRadius.circular(12),
+                        child: const Padding(
+                          padding: EdgeInsets.all(6.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.alarm, color: Colors.white, size: 36),
+                              SizedBox(height: 4),
+                              Text('Reminders',
+                                  style: TextStyle(color: Colors.white)),
+                            ],
+                          ),
+                        ),
+                      ),
                       InkWell(
                         onTap: () => Navigator.pushNamed(context, '/notes'),
                         borderRadius: BorderRadius.circular(12),
@@ -250,8 +325,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ),
-
-                      // Profile -> /account
                       InkWell(
                         onTap: () => Navigator.pushNamed(context, '/account'),
                         borderRadius: BorderRadius.circular(12),
@@ -268,8 +341,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ),
-
-                      // Settings -> /settings
                       InkWell(
                         onTap: () => Navigator.pushNamed(context, '/settings'),
                         borderRadius: BorderRadius.circular(12),
@@ -290,7 +361,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
-                // ==== END BOTTOM BAR ====
               ],
             ),
           ),

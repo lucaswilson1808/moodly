@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:moodly/screens/landing_screen.dart';
 import 'sign_in_screen.dart';
-import 'notes_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -17,6 +16,52 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _signUp() async {
+    try {
+      final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      final user = cred.user;
+      if (user == null) return;
+
+      await user.updateDisplayName(_usernameController.text.trim());
+      await user.reload();
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .set({
+        'username': _usernameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'photoUrl': null,
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const LandingScreen(fromSignUp: true),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -42,7 +87,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             const SizedBox(height: 50),
 
-            // Email
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
@@ -67,7 +111,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Username
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
@@ -91,7 +134,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Password
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
@@ -122,50 +164,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
               ),
-              onPressed: () async {
-                try {
-                  UserCredential userCredential = await FirebaseAuth.instance
-                      .createUserWithEmailAndPassword(
-                    email: _emailController.text,
-                    password: _passwordController.text,
-                  );
-
-                  await FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(userCredential.user!.uid)
-                      .set({
-                    'username': _usernameController.text,
-                    'email': _emailController.text,
-                    'createdAt': FieldValue.serverTimestamp(),
-                  });
-
-                  if (!mounted) return;
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const LandingScreen(fromSignUp: true),
-                    ),
-                  );
-                } catch (e) {
-                  String errorMessage;
-                  if (e.toString().contains('email-already-in-use')) {
-                    errorMessage =
-                        'This email is already registered. Please login instead!';
-                  } else if (e.toString().contains('weak-password')) {
-                    errorMessage =
-                        'Password is too weak. Please use a stronger password.';
-                  } else if (e.toString().contains('invalid-email')) {
-                    errorMessage = 'Please enter a valid email address.';
-                  } else {
-                    errorMessage = 'Error: ${e.toString()}';
-                  }
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(errorMessage)),
-                  );
-                }
-              },
+              onPressed: _signUp,
               child: const Text(
                 'Sign Up',
                 style: TextStyle(color: Colors.white, fontSize: 25),

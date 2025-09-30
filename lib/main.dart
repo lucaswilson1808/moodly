@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:moodly/screens/mood_chart.dart';
+import 'package:moodly/screens/reminder_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:timezone/data/latest.dart' as tz;
 import 'services/theme_notifier.dart';
 import 'screens/landing_screen.dart';
 import 'screens/home_screen.dart';
@@ -12,6 +15,11 @@ import 'screens/account_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(); // uses platform configs already in your project
+  await FirebaseAppCheck.instance.activate(
+  androidProvider: AndroidProvider.debug,
+  appleProvider: AppleProvider.debug,
+);
+tz.initializeTimeZones();
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeNotifier(),
@@ -55,6 +63,8 @@ class MyApp extends StatelessWidget {
         '/notes': (context) => const NotesScreen(),
         '/account': (context) =>
             const AccountScreen(displayName: "Name", email: "email"),
+        '/reminders': (context) => const ReminderScreen(),    
+        '/mood_chart': (context) => const MoodChart(),
       },
     );
   }

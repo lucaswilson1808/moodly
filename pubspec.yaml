@@ -38,6 +38,12 @@ dependencies:
   cupertino_icons: ^1.0.8
   provider: ^6.1.5
   path_provider: ^2.1.2
+  image_picker: ^1.2.0
+  firebase_storage: ^13.0.2
+  firebase_app_check: ^0.4.1
+  shared_preferences: ^2.5.3
+  flutter_local_notifications: ^19.4.2
+  timezone: ^0.10.1
 
 dev_dependencies:
   flutter_test:
@@ -65,6 +71,7 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/logos/
+    - assets/quotes.txt
 
   # To add assets to your application, add an assets section, like this:
   # assets:
