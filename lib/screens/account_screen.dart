@@ -2,9 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:moodly/services/auth_service.dart';
+import 'package:moodly/services/user_service.dart';
+import 'package:moodly/models/user_model.dart';
 
 import '../services/theme_notifier.dart';
 import 'landing_screen.dart';
@@ -20,14 +20,13 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  final _auth = FirebaseAuth.instance;
-  final _db = FirebaseFirestore.instance;
+  final AuthService _authService = AuthService();
+  final UserService _userService = UserService();
 
   String? _username;
   String? _email;
   DateTime? _createdAt;
-
-  String? _photoPath; // local file path
+  String? _photoUrl; // Firebase Storage URL
   bool _busy = false;
 
   @override
@@ -36,33 +35,24 @@ class _AccountScreenState extends State<AccountScreen> {
     _loadProfile();
   }
 
-  Future<File> _localPhotoFile(String uid) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final userDir = Directory('${dir.path}/users/$uid');
-    if (!await userDir.exists()) {
-      await userDir.create(recursive: true);
-    }
-    return File('${userDir.path}/profile.jpg');
-  }
-
   Future<void> _loadProfile() async {
-    final user = _auth.currentUser;
+    final user = _authService.currentUser;
     if (user == null) return;
 
     _email = user.email;
     _createdAt = user.metadata.creationTime;
 
-    final doc = await _db.collection('users').doc(user.uid).get();
-    if (doc.exists) {
-      final data = doc.data()!;
-      _username = (data['username'] as String?)?.trim();
-    } else {
+    // Load user data from Firestore using UserService
+    try {
+      final userModel = await _userService.getUser(user.uid);
+      if (userModel != null) {
+        _username = userModel.username;
+        _photoUrl = userModel.profilePictureUrl;
+      } else {
+        _username = user.displayName;
+      }
+    } catch (e) {
       _username = user.displayName;
-    }
-
-    final file = await _localPhotoFile(user.uid);
-    if (await file.exists()) {
-      _photoPath = file.path;
     }
 
     if (mounted) setState(() {});
@@ -71,7 +61,7 @@ class _AccountScreenState extends State<AccountScreen> {
   Future<void> _pickAndSavePhoto() async {
     try {
       setState(() => _busy = true);
-      final user = _auth.currentUser;
+      final user = _authService.currentUser;
       if (user == null) return;
 
       final picker = ImagePicker();
@@ -80,14 +70,26 @@ class _AccountScreenState extends State<AccountScreen> {
         maxWidth: 1024,
         imageQuality: 85,
       );
-      if (picked == null) return;
+      if (picked == null) {
+        setState(() => _busy = false);
+        return;
+      }
 
-      final bytes = await picked.readAsBytes();
-      final file = await _localPhotoFile(user.uid);
-      await file.writeAsBytes(bytes, flush: true);
+      // Convert XFile to File
+      final file = File(picked.path);
+
+      // Upload to Firebase Storage using UserService
+      final downloadUrl = await _userService.updateProfilePicture(user.uid, file);
 
       if (!mounted) return;
-      setState(() => _photoPath = file.path);
+      setState(() => _photoUrl = downloadUrl);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile picture updated!'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -110,11 +112,11 @@ class _AccountScreenState extends State<AccountScreen> {
   Future<void> _signOut() async {
     try {
       setState(() => _busy = true);
-      await _auth.signOut();
+      await _authService.signOut();
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LandingScreen()),
-        (route) => false,
+            (route) => false,
       );
     } catch (e) {
       if (!mounted) return;
@@ -127,7 +129,7 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Future<void> _deleteAccount() async {
-    final user = _auth.currentUser;
+    final user = _authService.currentUser;
     if (user == null) return;
 
     final confirmed = await showDialog<bool>(
@@ -154,22 +156,16 @@ class _AccountScreenState extends State<AccountScreen> {
     try {
       setState(() => _busy = true);
 
-      // Remove local photo
-      final file = await _localPhotoFile(user.uid);
-      if (await file.exists()) {
-        await file.delete().catchError((_) {});
-      }
-
-      // Remove Firestore doc (username/email still stored there)
-      await _db.collection('users').doc(user.uid).delete().catchError((_) {});
+      // Delete user data from Firestore (includes profile picture)
+      await _userService.deleteUser(user.uid);
 
       // Delete Auth account
-      await user.delete();
+      await _authService.deleteAccount();
 
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LandingScreen()),
-        (route) => false,
+            (route) => false,
       );
     } catch (e) {
       if (mounted) {
@@ -186,9 +182,9 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget build(BuildContext context) {
     final themeNotifier = Provider.of<ThemeNotifier>(context);
     final shownName =
-        (_username != null && _username!.isNotEmpty) ? _username! : (widget.displayName ?? 'Anonymous');
+    (_username != null && _username!.isNotEmpty) ? _username! : (widget.displayName ?? 'Anonymous');
     final shownEmail =
-        (_email != null && _email!.isNotEmpty) ? _email! : (widget.email ?? '—');
+    (_email != null && _email!.isNotEmpty) ? _email! : (widget.email ?? '—');
     final createdStr = _fmtDate(_createdAt);
 
     return Scaffold(
@@ -208,10 +204,10 @@ class _AccountScreenState extends State<AccountScreen> {
                       onTap: _busy ? null : _pickAndSavePhoto,
                       child: CircleAvatar(
                         radius: 28,
-                        backgroundImage: (_photoPath != null && File(_photoPath!).existsSync())
-                            ? FileImage(File(_photoPath!))
+                        backgroundImage: (_photoUrl != null && _photoUrl!.isNotEmpty)
+                            ? NetworkImage(_photoUrl!)
                             : null,
-                        child: (_photoPath == null || !File(_photoPath!).existsSync())
+                        child: (_photoUrl == null || _photoUrl!.isEmpty)
                             ? const Icon(Icons.person, size: 30)
                             : null,
                       ),

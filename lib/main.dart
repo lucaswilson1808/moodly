@@ -11,6 +11,8 @@ import 'screens/home_screen.dart';
 import 'screens/notes_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/account_screen.dart';
+import 'services/auth_service.dart';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,8 +57,7 @@ class MyApp extends StatelessWidget {
       themeMode: themeNotifier.currentTheme,
 
       // Auth gate lives inside LandingScreen (routes to SignIn or Home)
-      home: const LandingScreen(),
-
+      home: const AuthWrapper(),
       routes: {
         '/home': (context) => const HomeScreen(),
         '/settings': (context) => const SettingsScreen(),
