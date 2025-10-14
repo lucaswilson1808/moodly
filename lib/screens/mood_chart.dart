@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:moodly/services/mood_service.dart';
 import 'notes_screen.dart';
 
 class MoodChart extends StatefulWidget {
@@ -314,19 +315,42 @@ class _MoodChartState extends State<MoodChart> {
                   ),
                   onPressed: _hasSelection
                       ? () async {
-                    // If custom selected, bump it to the front again
-                    if (_customMood != null) {
-                      await _saveCustomMood(_customMood!);
-                    }
-                    final choice = _customMood != null
-                        ? _customMood!.label
-                        : moods[selectedIndex!].label;
+                    final moodService = MoodService();
 
-                    if (!mounted) return;
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const NotesScreen()),
-                    );
+                    try {
+                      String? entryId;
+                      if (_customMood != null) {
+                        await _saveCustomMood(_customMood!);
+                        entryId = await moodService.saveMoodEntry(
+                          moodEmoji: _customMood!.emoji,
+                          moodLabel: _customMood!.label,
+                        );
+                      } else {
+                        final selectedMood = moods[selectedIndex!];
+                        entryId = await moodService.saveMoodEntry(
+                          moodEmoji: selectedMood.emoji,
+                          moodLabel: selectedMood.label,
+                        );
+                      }
+
+                      if (!mounted) return;
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => NotesScreen(
+                            moodEntryId: entryId,
+                            moodEmoji: _customMood != null ? _customMood!.emoji : moods[selectedIndex!].emoji,
+                            moodLabel: _customMood != null ? _customMood!.label : moods[selectedIndex!].label,
+                        ),
+                        ),
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to save mood: $e')),
+                      );
+                    }
                   }
                       : null,
                   child: const Text(

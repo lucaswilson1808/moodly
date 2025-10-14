@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../services/notes_service.dart';
+import '../services/mood_service.dart';
 
 class NotesScreen extends StatefulWidget {
-  const NotesScreen({super.key});
+  final String? moodEntryId;
+  final String? moodEmoji;
+  final String? moodLabel;
+
+  const NotesScreen({
+    super.key,
+    this.moodEntryId,
+    this.moodEmoji,
+    this.moodLabel,
+  });
 
   @override
   State<NotesScreen> createState() => _NotesScreenState();
@@ -17,13 +28,24 @@ class _NotesScreenState extends State<NotesScreen> {
   List<_NoteView> _items = [];
   bool _loading = true;
 
-  // Quick emoji choices (kept from your functional build)
-  final List<String> _emojis = const ['😀', '🙂', '😐', '😞', '😭', '🔥', '✨', '✅', '🧠', '📝'];
+  // Quick emoji choices - make it mutable so we can add custom emoji
+  List<String> _emojis = ['😀', '🙂', '😐', '😞', '😭', '🔥', '✨', '✅', '🧠', '📝'];
   String _selectedEmoji = '📝';
 
   @override
   void initState() {
     super.initState();
+
+    // Add the mood emoji if it's not already in the list
+    if (widget.moodEmoji != null && !_emojis.contains(widget.moodEmoji)) {
+      _emojis = [..._emojis, widget.moodEmoji!];
+    }
+
+    // Set the selected emoji to the mood emoji if provided
+    if (widget.moodEmoji != null) {
+      _selectedEmoji = widget.moodEmoji!;
+    }
+
     _load();
   }
 
@@ -63,6 +85,33 @@ class _NotesScreenState extends State<NotesScreen> {
 
     final encoded = NotesService.encodeWithEmoji(_selectedEmoji, text);
     await _svc.writeNote(encoded);
+
+    // If no moodEntryId, create a default mood entry
+    String? entryId = widget.moodEntryId;
+
+    if (entryId == null) {
+      try {
+        final moodService = MoodService();
+        entryId = await moodService.saveMoodEntry(
+          moodEmoji: _selectedEmoji,
+          moodLabel: 'Note',
+        );
+        debugPrint('✅ Created new mood entry: $entryId');
+      } catch (e) {
+        debugPrint('❌ Failed to create mood entry: $e');
+      }
+    }
+
+    // Save note to the mood entry
+    if (entryId != null) {
+      try {
+        final moodService = MoodService();
+        await moodService.addNoteToEntry(entryId, text, _selectedEmoji);
+        debugPrint('✅ Saved to Firebase!');
+      } catch (e) {
+        debugPrint('❌ Failed to save note to Firestore: $e');
+      }
+    }
 
     setState(() {
       _input.clear();
@@ -142,9 +191,35 @@ class _NotesScreenState extends State<NotesScreen> {
                   color: Colors.white,
                 ),
               ),
+              const SizedBox(height: 12),
+
+              // Show selected mood
+              if (widget.moodEmoji != null && widget.moodLabel != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(widget.moodEmoji!, style: const TextStyle(fontSize: 28)),
+                      const SizedBox(width: 10),
+                      Text(
+                        widget.moodLabel!,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 20),
 
-              // Rounded input box (large)
+              // Rounded input box (large) - THIS WAS MISSING IN YOUR CODE
               Container(
                 decoration: BoxDecoration(
                   color: cardFill,
@@ -156,7 +231,7 @@ class _NotesScreenState extends State<NotesScreen> {
                   maxLines: 5,
                   decoration: InputDecoration(
                     border: InputBorder.none,
-                    hintText: 'Type how you’re feeling...',
+                    hintText: "Type how you are feeling...",
                     hintStyle: TextStyle(color: hint),
                   ),
                   style: const TextStyle(fontSize: 16),
@@ -241,57 +316,57 @@ class _NotesScreenState extends State<NotesScreen> {
               Expanded(
                 child: _loading
                     ? const Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
                     : _items.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No notes yet. Start writing something.',
-                              style: TextStyle(color: Colors.white70),
-                              textAlign: TextAlign.center,
+                    ? const Center(
+                  child: Text(
+                    'No notes yet. Start writing something.',
+                    style: TextStyle(color: Colors.white70),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+                    : ListView.separated(
+                  padding: EdgeInsets.zero,
+                  itemCount: _items.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final item = _items[index];
+                    return Dismissible(
+                      key: ValueKey(item.encoded + index.toString()),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        color: Colors.red,
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      onDismissed: (_) => _deleteAt(index),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.98),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(item.emoji, style: const TextStyle(fontSize: 20)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                item.text,
+                                style: const TextStyle(fontSize: 16, color: Colors.black87),
+                              ),
                             ),
-                          )
-                        : ListView.separated(
-                            padding: EdgeInsets.zero,
-                            itemCount: _items.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 8),
-                            itemBuilder: (context, index) {
-                              final item = _items[index];
-                              return Dismissible(
-                                key: ValueKey(item.encoded + index.toString()),
-                                direction: DismissDirection.endToStart,
-                                background: Container(
-                                  alignment: Alignment.centerRight,
-                                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                                  color: Colors.red,
-                                  child: const Icon(Icons.delete, color: Colors.white),
-                                ),
-                                onDismissed: (_) => _deleteAt(index),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.98),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  padding: const EdgeInsets.all(12),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(item.emoji, style: const TextStyle(fontSize: 20)),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Text(
-                                          item.text,
-                                          style: const TextStyle(fontSize: 16, color: Colors.black87),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
             ],
           ),
