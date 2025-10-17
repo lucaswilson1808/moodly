@@ -5,7 +5,9 @@ import 'package:moodly/services/mood_service.dart';
 import 'notes_screen.dart';
 
 class MoodChart extends StatefulWidget {
-  const MoodChart({super.key});
+  final bool fromHomeScreen;
+
+  const MoodChart({super.key, this.fromHomeScreen = false});
 
   @override
   State<MoodChart> createState() => _MoodChartState();
@@ -335,16 +337,22 @@ class _MoodChartState extends State<MoodChart> {
 
                       if (!mounted) return;
 
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => NotesScreen(
-                            moodEntryId: entryId,
-                            moodEmoji: _customMood != null ? _customMood!.emoji : moods[selectedIndex!].emoji,
-                            moodLabel: _customMood != null ? _customMood!.label : moods[selectedIndex!].label,
-                        ),
-                        ),
-                      );
+                      // Check if came from home screen
+                      if (widget.fromHomeScreen) {
+                        Navigator.pop(context);
+                      } else {
+                        // Regular flow: go to notes screen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => NotesScreen(
+                              moodEntryId: entryId,
+                              moodEmoji: _customMood != null ? _customMood!.emoji : moods[selectedIndex!].emoji,
+                              moodLabel: _customMood != null ? _customMood!.label : moods[selectedIndex!].label,
+                            ),
+                          ),
+                        );
+                      }
                     } catch (e) {
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
